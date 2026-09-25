@@ -68,7 +68,7 @@ app.get('/', async (req, res) => {
     res.send(html);
 
   } catch (err) {
-    res.status(500).send("Error fetching greenhouse data");
+    res.status(500).send(`Error fetching greenhouse data: ${err.message || JSON.stringify(err)}`);
   }
 });
 
