@@ -1,70 +1,59 @@
+require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(express.json());
 
-// Connect to Supabase using Render's environment variable
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+// 1. Initialize Supabase Client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-app.post('/api/sensor-data', async (req, res) => {
-  const { temperature, humidity } = req.body;
-
-  try {
-    // Insert data into a table named sensor_readings
-    await pool.query(
-      'INSERT INTO sensor_readings (temperature, humidity) VALUES ($1, $2)',
-      [temperature, humidity]
-    );
-    console.log(`Saved: Temp ${temperature}°C, Hum ${humidity}%`);
-    res.status(200).send("Data saved to Supabase successfully!");
-  } catch (err) {
-    console.error("Database Error:", err);
-    res.status(500).send("Failed to save data");
-  }
-});
-
-// This tells the server what to show when someone visits the home page in a browser
+// 2. GET / (Visual Dashboard for browser)
 app.get('/', async (req, res) => {
   try {
-    // Fetch the 10 most recent readings from Supabase
     const { data, error } = await supabase
-      .from('sensor_readings') // Make sure this matches your actual table name!
+      .from('sensor_readings')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
 
     if (error) throw error;
 
-    // Build a simple HTML webpage to display the data
     let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Greenhouse Dashboard</title>
+        <meta http-equiv="refresh" content="10"> <!-- Auto refresh every 10s -->
+      </head>
       <body style="font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f9;">
         <h1 style="color: #2c7a7b;">🌱 Greenhouse Dashboard</h1>
-        <p>Live sensor data routed through greenhouseproject.me</p>
-        <table style="width: 100%; max-width: 600px; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+        <p>Live sensor data loaded via <b>greenhouseproject.me</b></p>
+        <table style="width: 100%; max-width: 650px; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
           <tr style="background: #2c7a7b; color: white;">
-            <th style="padding: 10px; text-align: left;">Time</th>
-            <th style="padding: 10px; text-align: left;">Temp (°C)</th>
-            <th style="padding: 10px; text-align: left;">Humidity (%)</th>
+            <th style="padding: 12px; text-align: left;">Time</th>
+            <th style="padding: 12px; text-align: left;">Temp (°C)</th>
+            <th style="padding: 12px; text-align: left;">Humidity (%)</th>
           </tr>
     `;
 
-    // Add each reading as a row in the table
-    data.forEach(reading => {
-      html += `
-        <tr style="border-bottom: 1px solid #ddd;">
-          <td style="padding: 10px;">${new Date(reading.created_at).toLocaleString()}</td>
-          <td style="padding: 10px;">${reading.temperature}</td>
-          <td style="padding: 10px;">${reading.humidity}</td>
-        </tr>
-      `;
-    });
+    if (data && data.length > 0) {
+      data.forEach(reading => {
+        html += `
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px;">${new Date(reading.created_at).toLocaleString()}</td>
+            <td style="padding: 10px;">${reading.temperature}</td>
+            <td style="padding: 10px;">${reading.humidity}</td>
+          </tr>
+        `;
+      });
+    } else {
+      html += `<tr><td colspan="3" style="padding: 15px;">No sensor readings found yet.</td></tr>`;
+    }
 
-    html += `</table></body>`;
-    
+    html += `</table></body></html>`;
     res.send(html);
 
   } catch (err) {
@@ -72,7 +61,29 @@ app.get('/', async (req, res) => {
   }
 });
 
+// 3. POST /api/sensor-data (Endpoint for ESP32)
+app.post('/api/sensor-data', async (req, res) => {
+  const { temperature, humidity } = req.body;
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running!");
+  if (temperature === undefined || humidity === undefined) {
+    return res.status(400).json({ error: 'Missing temperature or humidity' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('sensor_readings')
+      .insert([{ temperature, humidity }]);
+
+    if (error) throw error;
+
+    res.status(200).json({ message: 'Data saved successfully', data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Start Server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
