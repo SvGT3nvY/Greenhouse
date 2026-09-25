@@ -27,10 +27,6 @@ app.post('/api/sensor-data', async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running!");
-});
-
 // This tells the server what to show when someone visits the home page in a browser
 app.get('/', async (req, res) => {
   try {
@@ -74,4 +70,9 @@ app.get('/', async (req, res) => {
   } catch (err) {
     res.status(500).send("Error fetching greenhouse data");
   }
+});
+
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running!");
 });
