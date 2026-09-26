@@ -5,13 +5,23 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 app.use(express.json());
 
-// 1. Initialize Supabase Client
+// Safely initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 2. GET / (Visual Dashboard for browser)
+let supabase = null;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+} else {
+  console.error("WARNING: SUPABASE_URL or SUPABASE_KEY environment variables are missing!");
+}
+
+// Visual Dashboard Endpoint
 app.get('/', async (req, res) => {
+  if (!supabase) {
+    return res.status(500).send("Server Error: Supabase credentials are not configured in Render Environment settings.");
+  }
+
   try {
     const { data, error } = await supabase
       .from('sensor_readings')
@@ -26,7 +36,7 @@ app.get('/', async (req, res) => {
       <html>
       <head>
         <title>Greenhouse Dashboard</title>
-        <meta http-equiv="refresh" content="10"> <!-- Auto refresh every 10s -->
+        <meta http-equiv="refresh" content="10">
       </head>
       <body style="font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f9;">
         <h1 style="color: #2c7a7b;">🌱 Greenhouse Dashboard</h1>
@@ -61,8 +71,12 @@ app.get('/', async (req, res) => {
   }
 });
 
-// 3. POST /api/sensor-data (Endpoint for ESP32)
+// Hardware Sensor Endpoint
 app.post('/api/sensor-data', async (req, res) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase credentials missing' });
+  }
+
   const { temperature, humidity } = req.body;
 
   if (temperature === undefined || humidity === undefined) {
@@ -82,7 +96,7 @@ app.post('/api/sensor-data', async (req, res) => {
   }
 });
 
-// 4. Start Server
+// Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
