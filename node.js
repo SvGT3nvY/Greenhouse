@@ -53,7 +53,7 @@ app.get('/', async (req, res) => {
       data.forEach(reading => {
         html += `
           <tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 10px;">${new Date(reading.created_at).toLocaleString()}</td>
+            <td style="padding: 10px;">${new Date(reading.created_at).toLocaleString('en-US', { timeZone: 'Asia/Manila' })}</td>
             <td style="padding: 10px;">${reading.temperature}</td>
             <td style="padding: 10px;">${reading.humidity}</td>
           </tr>
