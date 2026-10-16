@@ -14,9 +14,12 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 
-// Global variables to track fan state
+// Global variables to track relay states
 let fanMode = 'AUTO';
 let fanManualState = false;
+
+let pumpMode = 'AUTO';
+let pumpManualState = false;
 
 // 1. Dashboard View
 app.get('/', async (req, res) => {
@@ -32,12 +35,10 @@ app.get('/', async (req, res) => {
     if (error) throw error;
 
     let currentTemp = (data && data.length > 0) ? data[0].temperature : 0;
-    let actualFanState = false;
-    if (fanMode === 'AUTO') {
-      actualFanState = (currentTemp > 30.0); // Set back to 30.0
-    } else {
-      actualFanState = fanManualState;
-    }
+    let currentSoil = (data && data.length > 0) ? data[0].soil_moisture : 100;
+    
+    let actualFanState = (fanMode === 'AUTO') ? (currentTemp > 30.0) : fanManualState;
+    let actualPumpState = (pumpMode === 'AUTO') ? (currentSoil < 40) : pumpManualState;
 
     let html = `
       <!DOCTYPE html>
@@ -51,20 +52,37 @@ app.get('/', async (req, res) => {
         
         <!-- FAN CONTROL PANEL -->
         <div style="background: white; padding: 20px; max-width: 1050px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px;">
-          <h2 style="margin-top: 0;">⚙️ Fan Control Panel</h2>
-          <p style="font-size: 18px;">Current Status: <b>${actualFanState ? '🟢 SPINNING (ON)' : '🔴 STOPPED (OFF)'}</b> | Mode: <b>${fanMode}</b></p>
-          
+          <h2 style="margin-top: 0;">💨 Fan Control Panel</h2>
+          <p style="font-size: 18px;">Status: <b>${actualFanState ? '🟢 ON' : '🔴 OFF'}</b> | Mode: <b>${fanMode}</b></p>
           <form action="/api/set-fan" method="POST" style="display:inline;">
             <input type="hidden" name="mode" value="AUTO">
-            <button type="submit" style="padding: 10px 15px; background: #2c7a7b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px;">🤖 Set AUTO (Triggers at >30.0°C)</button>
+            <button type="submit" style="padding: 10px; background: #2c7a7b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🤖 Set AUTO (>30.0°C)</button>
           </form>
           <form action="/api/set-fan" method="POST" style="display:inline;">
             <input type="hidden" name="mode" value="MANUAL_ON">
-            <button type="submit" style="padding: 10px 15px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px;">🟢 Force ON</button>
+            <button type="submit" style="padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🟢 Force ON</button>
           </form>
           <form action="/api/set-fan" method="POST" style="display:inline;">
             <input type="hidden" name="mode" value="MANUAL_OFF">
-            <button type="submit" style="padding: 10px 15px; background: #c0392b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🔴 Force OFF</button>
+            <button type="submit" style="padding: 10px; background: #c0392b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🔴 Force OFF</button>
+          </form>
+        </div>
+
+        <!-- PUMP CONTROL PANEL -->
+        <div style="background: white; padding: 20px; max-width: 1050px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px;">
+          <h2 style="margin-top: 0;">💧 Pump Control Panel</h2>
+          <p style="font-size: 18px;">Status: <b>${actualPumpState ? '🟢 PUMPING (ON)' : '🔴 STOPPED (OFF)'}</b> | Mode: <b>${pumpMode}</b></p>
+          <form action="/api/set-pump" method="POST" style="display:inline;">
+            <input type="hidden" name="mode" value="AUTO">
+            <button type="submit" style="padding: 10px; background: #2980b9; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🤖 Set AUTO (Soil < 40%)</button>
+          </form>
+          <form action="/api/set-pump" method="POST" style="display:inline;">
+            <input type="hidden" name="mode" value="MANUAL_ON">
+            <button type="submit" style="padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🟢 Force ON</button>
+          </form>
+          <form action="/api/set-pump" method="POST" style="display:inline;">
+            <input type="hidden" name="mode" value="MANUAL_OFF">
+            <button type="submit" style="padding: 10px; background: #c0392b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🔴 Force OFF</button>
           </form>
         </div>
 
@@ -83,25 +101,18 @@ app.get('/', async (req, res) => {
     if (data && data.length > 0) {
       data.forEach(reading => {
         const timeStr = new Date(reading.created_at).toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-        const soil = reading.soil_moisture !== null && reading.soil_moisture !== undefined ? reading.soil_moisture : '--';
-        const soil2 = reading.soil_moisture_2 !== null && reading.soil_moisture_2 !== undefined ? reading.soil_moisture_2 : '--';
-        const water = reading.water_level !== null && reading.water_level !== undefined ? reading.water_level : '--';
-        const light = reading.light_level !== null && reading.light_level !== undefined ? reading.light_level : '--';
-        
         html += `
           <tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 10px;">${timeStr}</td>
             <td style="padding: 10px;">${reading.temperature}</td>
             <td style="padding: 10px;">${reading.humidity}</td>
-            <td style="padding: 10px;">${soil}</td>
-            <td style="padding: 10px;">${soil2}</td>
-            <td style="padding: 10px;">${water}</td>
-            <td style="padding: 10px;">${light}</td>
+            <td style="padding: 10px;">${reading.soil_moisture ?? '--'}</td>
+            <td style="padding: 10px;">${reading.soil_moisture_2 ?? '--'}</td>
+            <td style="padding: 10px;">${reading.water_level ?? '--'}</td>
+            <td style="padding: 10px;">${reading.light_level ?? '--'}</td>
           </tr>
         `;
       });
-    } else {
-      html += `<tr><td colspan="7" style="padding: 15px;">No sensor readings found yet.</td></tr>`;
     }
 
     html += `</table></body></html>`;
@@ -112,18 +123,20 @@ app.get('/', async (req, res) => {
   }
 });
 
-// 2. Dashboard Button Handler
+// 2. Button Handlers
 app.post('/api/set-fan', (req, res) => {
   const mode = req.body.mode;
-  if (mode === 'AUTO') {
-    fanMode = 'AUTO';
-  } else if (mode === 'MANUAL_ON') {
-    fanMode = 'MANUAL';
-    fanManualState = true;
-  } else if (mode === 'MANUAL_OFF') {
-    fanMode = 'MANUAL';
-    fanManualState = false;
-  }
+  if (mode === 'AUTO') fanMode = 'AUTO';
+  else if (mode === 'MANUAL_ON') { fanMode = 'MANUAL'; fanManualState = true; }
+  else if (mode === 'MANUAL_OFF') { fanMode = 'MANUAL'; fanManualState = false; }
+  res.redirect('/');
+});
+
+app.post('/api/set-pump', (req, res) => {
+  const mode = req.body.mode;
+  if (mode === 'AUTO') pumpMode = 'AUTO';
+  else if (mode === 'MANUAL_ON') { pumpMode = 'MANUAL'; pumpManualState = true; }
+  else if (mode === 'MANUAL_OFF') { pumpMode = 'MANUAL'; pumpManualState = false; }
   res.redirect('/');
 });
 
@@ -131,15 +144,10 @@ app.post('/api/set-fan', (req, res) => {
 app.post('/api/sensor-data', async (req, res) => {
   if (!supabase) return res.status(500).json({ error: 'Supabase missing' });
 
-  // Extract the new light_level variable
   const { temperature, humidity, soil_moisture, soil_moisture_2, water_level, light_level } = req.body;
 
-  let shouldFanBeOn = false;
-  if (fanMode === 'AUTO') {
-    shouldFanBeOn = (temperature > 30.0); // Set back to 30.0
-  } else {
-    shouldFanBeOn = fanManualState;
-  }
+  let shouldFanBeOn = (fanMode === 'AUTO') ? (temperature > 30.0) : fanManualState;
+  let shouldPumpBeOn = (pumpMode === 'AUTO') ? (soil_moisture < 40) : pumpManualState;
 
   try {
     const payload = {};
@@ -148,17 +156,15 @@ app.post('/api/sensor-data', async (req, res) => {
     if (soil_moisture !== undefined) payload.soil_moisture = soil_moisture;
     if (soil_moisture_2 !== undefined) payload.soil_moisture_2 = soil_moisture_2;
     if (water_level !== undefined) payload.water_level = water_level;
-    if (light_level !== undefined) payload.light_level = light_level; // Save light level
+    if (light_level !== undefined) payload.light_level = light_level;
 
-    const { data, error } = await supabase
-      .from('sensor_readings')
-      .insert([payload]);
-
+    const { error } = await supabase.from('sensor_readings').insert([payload]);
     if (error) throw error;
 
     res.status(200).json({ 
       message: 'Data saved', 
-      fan_state: shouldFanBeOn ? 'ON' : 'OFF' 
+      fan_state: shouldFanBeOn ? 'ON' : 'OFF',
+      pump_state: shouldPumpBeOn ? 'ON' : 'OFF'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
