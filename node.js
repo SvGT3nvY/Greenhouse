@@ -134,7 +134,7 @@ app.post('/api/sensor-data', async (req, res) => {
   // Determine what the ESP32 fan should do based on mode
   let shouldFanBeOn = false;
   if (fanMode === 'AUTO') {
-    shouldFanBeOn = (temperature > 30.0);
+    shouldFanBeOn = (temperature > 29.5); // FIXED: Updated from 30.0 to 29.5
   } else {
     shouldFanBeOn = fanManualState;
   }
