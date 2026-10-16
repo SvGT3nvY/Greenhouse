@@ -34,15 +34,12 @@ app.get('/', async (req, res) => {
 
     let currentTemp = (data && data.length > 0) ? data[0].temperature : 0;
     let currentSoil = (data && data.length > 0) ? data[0].soil_moisture : 100;
-    let currentWater = (data && data.length > 0) ? data[0].water_level : 0;
     let currentLight = (data && data.length > 0) ? data[0].light_level : 1000;
-    
-    let isTankEmpty = (currentWater < 200); 
 
-    // Auto-Logic Rules
+    // Auto-Logic Rules (Dry-run protection removed)
     let actualFanState = (fanMode === 'AUTO') ? (currentTemp > 30.0) : fanManualState;
-    let actualPumpState = isTankEmpty ? false : ((pumpMode === 'AUTO') ? (currentSoil < 40) : pumpManualState);
-    let actualLightState = (lightMode === 'AUTO') ? (currentLight < 500) : lightManualState; // Turns on if lux is below 500
+    let actualPumpState = (pumpMode === 'AUTO') ? (currentSoil < 40) : pumpManualState;
+    let actualLightState = (lightMode === 'AUTO') ? (currentLight < 500) : lightManualState;
 
     // Reverse data for the charts (oldest to newest left-to-right)
     let chartData = data ? [...data].reverse() : [];
@@ -89,17 +86,16 @@ app.get('/', async (req, res) => {
           <form action="/api/set-fan" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_OFF"><button type="submit" class="btn" style="background: #c0392b;">🔴 Force OFF</button></form>
         </div>
 
-        <div class="panel" style="border: ${isTankEmpty ? '2px solid red' : 'none'};">
+        <div class="panel">
           <h2 style="margin-top: 0;">💧 Water Pump (Relay 3)</h2>
-          ${isTankEmpty ? '<div style="background: #e74c3c; color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><b>⚠️ WATER TANK EMPTY!</b> Pump disabled.</div>' : ''}
           <p>Status: <b>${actualPumpState ? '🟢 PUMPING' : '🔴 STOPPED'}</b> | Mode: <b>${pumpMode}</b></p>
-          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #2980b9;" ${isTankEmpty ? 'disabled' : ''}>🤖 Set AUTO (Soil < 40%)</button></form>
-          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;" ${isTankEmpty ? 'disabled' : ''}>🟢 Force ON</button></form>
+          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #2980b9;">🤖 Set AUTO (Soil < 40%)</button></form>
+          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;">🟢 Force ON</button></form>
           <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_OFF"><button type="submit" class="btn" style="background: #c0392b;">🔴 Force OFF</button></form>
         </div>
 
         <div class="panel">
-          <h2 style="margin-top: 0;">💡 Grow Light (Relay 4)</h2>
+          <h2 style="margin-top: 0;">💡 White LED Light (Relay 4)</h2>
           <p>Status: <b>${actualLightState ? '🟢 ON' : '🔴 OFF'}</b> | Mode: <b>${lightMode}</b></p>
           <form action="/api/set-light" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #8e44ad;">🤖 Set AUTO (Lux < 500)</button></form>
           <form action="/api/set-light" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;">🟢 Force ON</button></form>
@@ -161,9 +157,8 @@ app.post('/api/set-light', (req, res) => { const m = req.body.mode; if(m==='AUTO
 app.post('/api/sensor-data', async (req, res) => {
   const { temperature, humidity, soil_moisture, soil_moisture_2, water_level, light_level } = req.body;
 
-  let isTankEmpty = (water_level !== undefined && water_level < 200);
   let shouldFanBeOn = (fanMode === 'AUTO') ? (temperature > 30.0) : fanManualState;
-  let shouldPumpBeOn = isTankEmpty ? false : ((pumpMode === 'AUTO') ? (soil_moisture < 40) : pumpManualState);
+  let shouldPumpBeOn = (pumpMode === 'AUTO') ? (soil_moisture < 40) : pumpManualState;
   let shouldLightBeOn = (lightMode === 'AUTO') ? (light_level < 500) : lightManualState;
 
   try {
