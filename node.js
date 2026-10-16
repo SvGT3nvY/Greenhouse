@@ -35,7 +35,7 @@ app.get('/', async (req, res) => {
     let currentTemp = (data && data.length > 0) ? data[0].temperature : 0;
     let actualFanState = false;
     if (fanMode === 'AUTO') {
-      actualFanState = (currentTemp > 29.5);
+      actualFanState = (currentTemp > 30);
     } else {
       actualFanState = fanManualState;
     }
@@ -57,7 +57,7 @@ app.get('/', async (req, res) => {
           
           <form action="/api/set-fan" method="POST" style="display:inline;">
             <input type="hidden" name="mode" value="AUTO">
-            <button type="submit" style="padding: 10px 15px; background: #2c7a7b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px;">🤖 Set AUTO (Triggers at >29.5°C)</button>
+            <button type="submit" style="padding: 10px 15px; background: #2c7a7b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; margin-right: 10px;">🤖 Set AUTO (Triggers at >30°C)</button>
           </form>
           <form action="/api/set-fan" method="POST" style="display:inline;">
             <input type="hidden" name="mode" value="MANUAL_ON">
@@ -134,7 +134,7 @@ app.post('/api/sensor-data', async (req, res) => {
   // Determine what the ESP32 fan should do based on mode
   let shouldFanBeOn = false;
   if (fanMode === 'AUTO') {
-    shouldFanBeOn = (temperature > 29.5); // FIXED: Updated from 30.0 to 29.5
+    shouldFanBeOn = (temperature > 30);
   } else {
     shouldFanBeOn = fanManualState;
   }
