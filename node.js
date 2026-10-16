@@ -14,140 +14,157 @@ if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 
-// Global variables to track relay states
-let fanMode = 'AUTO';
-let fanManualState = false;
+// Global Variables
+let fanMode = 'AUTO'; let fanManualState = false;
+let pumpMode = 'AUTO'; let pumpManualState = false;
+let lightMode = 'AUTO'; let lightManualState = false;
 
-let pumpMode = 'AUTO';
-let pumpManualState = false;
-
-// 1. Dashboard View
 app.get('/', async (req, res) => {
   if (!supabase) return res.status(500).send("Supabase credentials missing.");
 
   try {
+    // Fetch last 15 readings for the charts
     const { data, error } = await supabase
       .from('sensor_readings')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(15);
 
     if (error) throw error;
 
     let currentTemp = (data && data.length > 0) ? data[0].temperature : 0;
     let currentSoil = (data && data.length > 0) ? data[0].soil_moisture : 100;
+    let currentWater = (data && data.length > 0) ? data[0].water_level : 0;
+    let currentLight = (data && data.length > 0) ? data[0].light_level : 1000;
     
+    let isTankEmpty = (currentWater < 200); 
+
+    // Auto-Logic Rules
     let actualFanState = (fanMode === 'AUTO') ? (currentTemp > 30.0) : fanManualState;
-    let actualPumpState = (pumpMode === 'AUTO') ? (currentSoil < 40) : pumpManualState;
+    let actualPumpState = isTankEmpty ? false : ((pumpMode === 'AUTO') ? (currentSoil < 40) : pumpManualState);
+    let actualLightState = (lightMode === 'AUTO') ? (currentLight < 500) : lightManualState; // Turns on if lux is below 500
+
+    // Reverse data for the charts (oldest to newest left-to-right)
+    let chartData = data ? [...data].reverse() : [];
 
     let html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Greenhouse Dashboard</title>
-        <meta http-equiv="refresh" content="10">
+        <title>Pro Greenhouse Dashboard</title>
+        <meta http-equiv="refresh" content="30">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+          body { font-family: Arial; padding: 2rem; background: #f4f4f9; }
+          .panel { background: white; padding: 20px; max-width: 1050px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }
+          .btn { padding: 10px; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+          .chart-container { display: flex; gap: 20px; max-width: 1050px; margin-bottom: 20px; }
+          .chart-box { background: white; padding: 20px; flex: 1; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+          table { width: 100%; max-width: 1050px; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+          th { padding: 12px; text-align: left; background: #2c7a7b; color: white; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+        </style>
       </head>
-      <body style="font-family: Arial, sans-serif; padding: 2rem; background: #f4f4f9;">
-        <h1 style="color: #2c7a7b;">🌱 Greenhouse Dashboard</h1>
+      <body>
+        <h1 style="color: #2c7a7b;">🌱 Professional Greenhouse Dashboard</h1>
         
-        <!-- FAN CONTROL PANEL -->
-        <div style="background: white; padding: 20px; max-width: 1050px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px;">
-          <h2 style="margin-top: 0;">💨 Fan Control Panel</h2>
-          <p style="font-size: 18px;">Status: <b>${actualFanState ? '🟢 ON' : '🔴 OFF'}</b> | Mode: <b>${fanMode}</b></p>
-          <form action="/api/set-fan" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="AUTO">
-            <button type="submit" style="padding: 10px; background: #2c7a7b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🤖 Set AUTO (>30.0°C)</button>
-          </form>
-          <form action="/api/set-fan" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="MANUAL_ON">
-            <button type="submit" style="padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🟢 Force ON</button>
-          </form>
-          <form action="/api/set-fan" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="MANUAL_OFF">
-            <button type="submit" style="padding: 10px; background: #c0392b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🔴 Force OFF</button>
-          </form>
+        <!-- CHARTS SECTION -->
+        <div class="chart-container">
+          <div class="chart-box">
+            <h3>Temperature & Humidity</h3>
+            <canvas id="tempChart"></canvas>
+          </div>
+          <div class="chart-box">
+            <h3>Soil Moisture & Light</h3>
+            <canvas id="soilChart"></canvas>
+          </div>
         </div>
 
-        <!-- PUMP CONTROL PANEL -->
-        <div style="background: white; padding: 20px; max-width: 1050px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px;">
-          <h2 style="margin-top: 0;">💧 Pump Control Panel</h2>
-          <p style="font-size: 18px;">Status: <b>${actualPumpState ? '🟢 PUMPING (ON)' : '🔴 STOPPED (OFF)'}</b> | Mode: <b>${pumpMode}</b></p>
-          <form action="/api/set-pump" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="AUTO">
-            <button type="submit" style="padding: 10px; background: #2980b9; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🤖 Set AUTO (Soil < 40%)</button>
-          </form>
-          <form action="/api/set-pump" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="MANUAL_ON">
-            <button type="submit" style="padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🟢 Force ON</button>
-          </form>
-          <form action="/api/set-pump" method="POST" style="display:inline;">
-            <input type="hidden" name="mode" value="MANUAL_OFF">
-            <button type="submit" style="padding: 10px; background: #c0392b; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">🔴 Force OFF</button>
-          </form>
+        <!-- CONTROL PANELS -->
+        <div class="panel">
+          <h2 style="margin-top: 0;">💨 Fans (Relay 1 & 2)</h2>
+          <p>Status: <b>${actualFanState ? '🟢 ON' : '🔴 OFF'}</b> | Mode: <b>${fanMode}</b></p>
+          <form action="/api/set-fan" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #2c7a7b;">🤖 Set AUTO (>30.0°C)</button></form>
+          <form action="/api/set-fan" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;">🟢 Force ON</button></form>
+          <form action="/api/set-fan" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_OFF"><button type="submit" class="btn" style="background: #c0392b;">🔴 Force OFF</button></form>
         </div>
 
-        <table style="width: 100%; max-width: 1050px; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-          <tr style="background: #2c7a7b; color: white;">
-            <th style="padding: 12px; text-align: left;">Time</th>
-            <th style="padding: 12px; text-align: left;">Temp (°C)</th>
-            <th style="padding: 12px; text-align: left;">Air Hum (%)</th>
-            <th style="padding: 12px; text-align: left;">Soil Hum 1 (%)</th>
-            <th style="padding: 12px; text-align: left;">Soil Hum 2 (%)</th>
-            <th style="padding: 12px; text-align: left;">Water Level</th>
-            <th style="padding: 12px; text-align: left;">Light (lux)</th>
-          </tr>
+        <div class="panel" style="border: ${isTankEmpty ? '2px solid red' : 'none'};">
+          <h2 style="margin-top: 0;">💧 Water Pump (Relay 3)</h2>
+          ${isTankEmpty ? '<div style="background: #e74c3c; color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;"><b>⚠️ WATER TANK EMPTY!</b> Pump disabled.</div>' : ''}
+          <p>Status: <b>${actualPumpState ? '🟢 PUMPING' : '🔴 STOPPED'}</b> | Mode: <b>${pumpMode}</b></p>
+          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #2980b9;" ${isTankEmpty ? 'disabled' : ''}>🤖 Set AUTO (Soil < 40%)</button></form>
+          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;" ${isTankEmpty ? 'disabled' : ''}>🟢 Force ON</button></form>
+          <form action="/api/set-pump" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_OFF"><button type="submit" class="btn" style="background: #c0392b;">🔴 Force OFF</button></form>
+        </div>
+
+        <div class="panel">
+          <h2 style="margin-top: 0;">💡 Grow Light (Relay 4)</h2>
+          <p>Status: <b>${actualLightState ? '🟢 ON' : '🔴 OFF'}</b> | Mode: <b>${lightMode}</b></p>
+          <form action="/api/set-light" method="POST" style="display:inline;"><input type="hidden" name="mode" value="AUTO"><button type="submit" class="btn" style="background: #8e44ad;">🤖 Set AUTO (Lux < 500)</button></form>
+          <form action="/api/set-light" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_ON"><button type="submit" class="btn" style="background: #27ae60;">🟢 Force ON</button></form>
+          <form action="/api/set-light" method="POST" style="display:inline;"><input type="hidden" name="mode" value="MANUAL_OFF"><button type="submit" class="btn" style="background: #c0392b;">🔴 Force OFF</button></form>
+        </div>
+
+        <!-- SENSOR DATA TABLE -->
+        <table>
+          <tr><th>Time</th><th>Temp (°C)</th><th>Hum (%)</th><th>Soil 1 (%)</th><th>Soil 2 (%)</th><th>Water Level</th><th>Light (lux)</th></tr>
     `;
 
     if (data && data.length > 0) {
       data.forEach(reading => {
-        const timeStr = new Date(reading.created_at).toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-        html += `
-          <tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 10px;">${timeStr}</td>
-            <td style="padding: 10px;">${reading.temperature}</td>
-            <td style="padding: 10px;">${reading.humidity}</td>
-            <td style="padding: 10px;">${reading.soil_moisture ?? '--'}</td>
-            <td style="padding: 10px;">${reading.soil_moisture_2 ?? '--'}</td>
-            <td style="padding: 10px;">${reading.water_level ?? '--'}</td>
-            <td style="padding: 10px;">${reading.light_level ?? '--'}</td>
-          </tr>
-        `;
+        html += `<tr><td>${new Date(reading.created_at).toLocaleTimeString('en-US', { timeZone: 'Asia/Manila' })}</td><td>${reading.temperature}</td><td>${reading.humidity}</td><td>${reading.soil_moisture ?? '--'}</td><td>${reading.soil_moisture_2 ?? '--'}</td><td>${reading.water_level ?? '--'}</td><td>${reading.light_level ?? '--'}</td></tr>`;
       });
     }
 
-    html += `</table></body></html>`;
+    html += `
+        </table>
+        <script>
+          const rawData = ${JSON.stringify(chartData)};
+          const labels = rawData.map(d => new Date(d.created_at).toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: '2-digit', minute:'2-digit' }));
+          
+          new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                { label: 'Temp (°C)', data: rawData.map(d => d.temperature), borderColor: '#e74c3c', tension: 0.3 },
+                { label: 'Humidity (%)', data: rawData.map(d => d.humidity), borderColor: '#3498db', tension: 0.3 }
+              ]
+            }
+          });
+
+          new Chart(document.getElementById('soilChart'), {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                { label: 'Soil 1 (%)', data: rawData.map(d => d.soil_moisture), borderColor: '#8e44ad', tension: 0.3 },
+                { label: 'Light (/10 lux)', data: rawData.map(d => (d.light_level/10)), borderColor: '#f1c40f', tension: 0.3 }
+              ]
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `;
     res.send(html);
-
-  } catch (err) {
-    res.status(500).send(`Error: ${err.message}`);
-  }
+  } catch (err) { res.status(500).send(`Error: ${err.message}`); }
 });
 
-// 2. Button Handlers
-app.post('/api/set-fan', (req, res) => {
-  const mode = req.body.mode;
-  if (mode === 'AUTO') fanMode = 'AUTO';
-  else if (mode === 'MANUAL_ON') { fanMode = 'MANUAL'; fanManualState = true; }
-  else if (mode === 'MANUAL_OFF') { fanMode = 'MANUAL'; fanManualState = false; }
-  res.redirect('/');
-});
+// Button Handlers
+app.post('/api/set-fan', (req, res) => { const m = req.body.mode; if(m==='AUTO') fanMode='AUTO'; else { fanMode='MANUAL'; fanManualState=(m==='MANUAL_ON'); } res.redirect('/'); });
+app.post('/api/set-pump', (req, res) => { const m = req.body.mode; if(m==='AUTO') pumpMode='AUTO'; else { pumpMode='MANUAL'; pumpManualState=(m==='MANUAL_ON'); } res.redirect('/'); });
+app.post('/api/set-light', (req, res) => { const m = req.body.mode; if(m==='AUTO') lightMode='AUTO'; else { lightMode='MANUAL'; lightManualState=(m==='MANUAL_ON'); } res.redirect('/'); });
 
-app.post('/api/set-pump', (req, res) => {
-  const mode = req.body.mode;
-  if (mode === 'AUTO') pumpMode = 'AUTO';
-  else if (mode === 'MANUAL_ON') { pumpMode = 'MANUAL'; pumpManualState = true; }
-  else if (mode === 'MANUAL_OFF') { pumpMode = 'MANUAL'; pumpManualState = false; }
-  res.redirect('/');
-});
-
-// 3. Hardware API Endpoint
+// Hardware API Endpoint
 app.post('/api/sensor-data', async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: 'Supabase missing' });
-
   const { temperature, humidity, soil_moisture, soil_moisture_2, water_level, light_level } = req.body;
 
+  let isTankEmpty = (water_level !== undefined && water_level < 200);
   let shouldFanBeOn = (fanMode === 'AUTO') ? (temperature > 30.0) : fanManualState;
-  let shouldPumpBeOn = (pumpMode === 'AUTO') ? (soil_moisture < 40) : pumpManualState;
+  let shouldPumpBeOn = isTankEmpty ? false : ((pumpMode === 'AUTO') ? (soil_moisture < 40) : pumpManualState);
+  let shouldLightBeOn = (lightMode === 'AUTO') ? (light_level < 500) : lightManualState;
 
   try {
     const payload = {};
@@ -158,17 +175,14 @@ app.post('/api/sensor-data', async (req, res) => {
     if (water_level !== undefined) payload.water_level = water_level;
     if (light_level !== undefined) payload.light_level = light_level;
 
-    const { error } = await supabase.from('sensor_readings').insert([payload]);
-    if (error) throw error;
+    await supabase.from('sensor_readings').insert([payload]);
 
     res.status(200).json({ 
-      message: 'Data saved', 
       fan_state: shouldFanBeOn ? 'ON' : 'OFF',
-      pump_state: shouldPumpBeOn ? 'ON' : 'OFF'
+      pump_state: shouldPumpBeOn ? 'ON' : 'OFF',
+      light_state: shouldLightBeOn ? 'ON' : 'OFF'
     });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 3000;
