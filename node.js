@@ -15,7 +15,7 @@ const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_KEY)
 /* ------------------------------------------------------------------ */
 
 // Names shown on the intro screen. Edit here, or set DEVELOPERS="Name One, Name Two" in .env
-const DEVELOPERS = (process.env.DEVELOPERS || 'Your Name, Teammate Name')
+const DEVELOPERS = (process.env.DEVELOPERS || '3rd Year Computer Engineering Student')
   .split(',').map((s) => s.trim()).filter(Boolean);
 const APP_TAGLINE = process.env.APP_TAGLINE || 'Smart monitoring & automation';
 
