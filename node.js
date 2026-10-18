@@ -199,6 +199,7 @@ const ICONS = {
   list:    '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
   chevron: '<path d="m9 18 6-6-6-6"/>',
   play:    '<path d="M6 4l14 8-14 8z"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
 };
 const icon = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
@@ -313,14 +314,14 @@ function renderPage(initial) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Greenhouse Control Center</title>
+  <title>GREENHOUSE CONTROL CENTER</title>
   <meta name="theme-color" content="#0f5c3c">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.svg">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Greenhouse">
+  <meta name="apple-mobile-web-app-title" content="GREENHOUSE">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -335,15 +336,15 @@ function renderPage(initial) {
     <div class="splash-inner">
       <div class="splash-logo-wrap">${logoSVG('splash-logo')}<span class="splash-ring"></span></div>
       <h1 class="splash-title">
-        <span class="splash-word big">${letters('Greenhouse', 0)}</span>
-        <span class="splash-word">${letters('Control Center', 10)}</span>
+        <span class="splash-word big">${letters('GREENHOUSE', 0)}</span>
+        <span class="splash-word">${letters('CONTROL CENTER', 10)}</span>
       </h1>
       <p class="splash-sub">${escHTML(APP_TAGLINE)}</p>
       <div class="splash-load" aria-hidden="true"><span class="splash-bar"></span></div>
       <p class="splash-status" id="splashStatus">Connecting to sensors…</p>
     </div>
     <div class="splash-credits">
-      <span class="credits-label">Developed by</span>
+      <span class="credits-label">DEVELOPED BY</span>
       <span class="credits-names">${credits}</span>
     </div>
     <button type="button" class="splash-skip" id="splashSkip">Skip intro</button>
@@ -351,14 +352,15 @@ function renderPage(initial) {
 
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="#overview" aria-label="Greenhouse Control Center">
+      <a class="brand" href="#overview" aria-label="GREENHOUSE CONTROL CENTER">
         <span class="logo">${logoSVG('head-logo')}</span>
-        <span class="brand-text"><strong>Greenhouse</strong><small>Control Center</small></span>
+        <span class="brand-text"><strong>GREENHOUSE</strong><small>CONTROL CENTER</small></span>
       </a>
       <nav class="topnav" aria-label="Sections">
         ${navItems.map(([id, label]) => `<a href="#${id}" data-nav="${id}">${label}</a>`).join('')}
       </nav>
       <div class="top-actions">
+        <button type="button" class="install-btn" id="installBtn" hidden>${icon('download')}<span>Install</span></button>
         <div class="conn" id="conn" data-state="live" role="status" aria-live="polite">
           <span class="conn-dot"></span><span id="connText">Live</span>
         </div>
@@ -425,7 +427,7 @@ function renderPage(initial) {
 
     <footer class="foot">
       <span class="foot-logo">${logoSVG('foot-logo')}</span>
-      <p><strong>Greenhouse Control Center</strong></p>
+      <p><strong>GREENHOUSE CONTROL CENTER</strong></p>
       <p class="muted">Developed by ${credits}</p>
       <p class="muted">Times shown in Philippine Time<!--PREVIEW-NOTE--></p>
       <button type="button" class="link-btn" id="replayIntro">${icon('play')}Replay intro</button>
@@ -809,6 +811,156 @@ td.empty{text-align:center;color:var(--muted);padding:28px}
   .splash{animation:splashOut .3s ease 1s forwards!important}
   html{scroll-behavior:auto}
 }
+  /* ================= DESIGN UPGRADE ================= */
+:root{
+  --orb1:rgba(76,192,114,.28); --orb2:rgba(28,126,214,.14); --orb3:rgba(242,183,5,.14);
+  --glass-bg:color-mix(in srgb,var(--surface) 70%,transparent);
+  --glass-line:color-mix(in srgb,var(--border) 70%,#fff 30%);
+  --blur:blur(16px) saturate(160%);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--orb1:rgba(67,208,143,.16);--orb2:rgba(77,171,247,.10);--orb3:rgba(252,196,25,.07);--glass-line:color-mix(in srgb,var(--border) 85%,#fff 8%)}
+}
+:root[data-theme="dark"]{--orb1:rgba(67,208,143,.16);--orb2:rgba(77,171,247,.10);--orb3:rgba(252,196,25,.07);--glass-line:color-mix(in srgb,var(--border) 85%,#fff 8%)}
+
+/* Ambient background so the glass has something to blur */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(620px 440px at 8% -5%,var(--orb1),transparent 70%),
+             radial-gradient(540px 440px at 96% 22%,var(--orb2),transparent 70%),
+             radial-gradient(580px 480px at 68% 108%,var(--orb3),transparent 70%)}
+
+/* Glass surfaces */
+.card,.kpi,.device{background:var(--glass-bg);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-color:var(--glass-line)}
+.sheet{background:color-mix(in srgb,var(--surface) 90%,transparent);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+.topbar{background:color-mix(in srgb,var(--bg) 60%,transparent);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px)}
+
+/* Hero */
+.hero{border:1px solid rgba(255,255,255,.14);
+  background:radial-gradient(520px 260px at 100% 0,rgba(169,240,189,.30),transparent 70%),
+             radial-gradient(420px 260px at 0 100%,rgba(28,126,214,.24),transparent 70%),
+             linear-gradient(135deg,#0b4a31,#1a7a52 60%,#22915f)}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1.3px);background-size:18px 18px;
+  -webkit-mask-image:linear-gradient(120deg,#000,transparent 65%);mask-image:linear-gradient(120deg,#000,transparent 65%)}
+
+/* Sensor cards: colored accent per metric */
+.kpi::before{content:"";position:absolute;left:16px;right:16px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--c,var(--primary));opacity:.85}
+.kpi-icon{background:color-mix(in srgb,var(--c,var(--muted)) 14%,transparent)}
+.kpi:hover{box-shadow:0 14px 34px -12px color-mix(in srgb,var(--c,var(--primary)) 50%,transparent),0 0 0 1px color-mix(in srgb,var(--c,var(--primary)) 30%,transparent)}
+.kpi[data-level="warn"]::before{background:var(--warn)}
+.kpi[data-level="warn"] .kpi-icon{background:var(--warn-soft);color:var(--warn)}
+
+/* Device cards glow softly when running */
+.device[data-on="true"]{background:linear-gradient(160deg,color-mix(in srgb,var(--primary) 13%,var(--glass-bg)),var(--glass-bg) 65%)}
+
+/* Section headings */
+.section-head h2{display:flex;align-items:center;gap:10px}
+.section-head h2::before{content:"";width:6px;height:20px;border-radius:4px;background:linear-gradient(180deg,var(--leaf),var(--primary-strong))}
+
+/* Table */
+tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-2) 35%,transparent)}
+tbody tr:hover td{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+th{background:color-mix(in srgb,var(--surface-2) 80%,transparent)}
+
+/* Small polish */
+::selection{background:color-mix(in srgb,var(--primary) 30%,transparent)}
+*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.bottomnav a[aria-current]{background:color-mix(in srgb,var(--primary) 14%,transparent)
+}
+/* ================= THEME GRADIENT BACKGROUNDS ================= */
+/* Light theme: green + white */
+:root{
+  --bg-base:#f4faf5;
+  --bg-gradient:
+    radial-gradient(900px 600px at 8% -10%, rgba(76,192,114,.38), transparent 70%),
+    radial-gradient(800px 600px at 100% 25%, rgba(169,232,185,.55), transparent 70%),
+    radial-gradient(900px 700px at 40% 115%, rgba(26,122,82,.22), transparent 70%),
+    linear-gradient(160deg,#e3f5e8 0%,#f6fbf7 50%,#ffffff 100%);
+}
+/* Dark theme: green + black (system dark) */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg-base:#030a07;
+    --bg-gradient:
+      radial-gradient(900px 600px at 10% -10%, rgba(34,145,95,.55), transparent 70%),
+      radial-gradient(800px 600px at 100% 30%, rgba(15,92,60,.45), transparent 70%),
+      radial-gradient(900px 700px at 40% 115%, rgba(26,122,82,.40), transparent 70%),
+      linear-gradient(160deg,#0b3d28 0%,#06170f 45%,#020605 100%);
+  }
+}
+/* Dark theme: green + black (theme button set to dark) */
+:root[data-theme="dark"]{
+  --bg-base:#030a07;
+  --bg-gradient:
+    radial-gradient(900px 600px at 10% -10%, rgba(34,145,95,.55), transparent 70%),
+    radial-gradient(800px 600px at 100% 30%, rgba(15,92,60,.45), transparent 70%),
+    radial-gradient(900px 700px at 40% 115%, rgba(26,122,82,.40), transparent 70%),
+    linear-gradient(160deg,#0b3d28 0%,#06170f 45%,#020605 100%);
+}
+html{background:var(--bg-base)}
+body{
+  background:var(--bg-gradient);
+  background-attachment:fixed;
+  min-height:100vh;
+}
+body::before{display:none
+}
+/* ================= SAME COLOR EFFECT FOR CONTROLS / TRENDS / LOG ================= */
+.device,.charts .card,.table-card{
+  position:relative;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,border-color .2s,background .3s;
+}
+
+/* Each card gets its own color */
+.device[data-device="fan"]{--c:var(--leaf)}
+.device[data-device="pump"]{--c:var(--hum)}
+.device[data-device="light"]{--c:var(--light)}
+.charts .card:nth-child(1){--c:var(--temp)}
+.charts .card:nth-child(2){--c:var(--soil)}
+.table-card{--c:var(--primary)}
+
+/* Colored top line, like the Environment cards */
+.device::before,.charts .card::before,.table-card::before{
+  content:"";position:absolute;left:16px;right:16px;top:0;height:3px;
+  border-radius:0 0 4px 4px;background:var(--c,var(--primary));opacity:.85;z-index:2;pointer-events:none;
+}
+
+/* Hover / touch: lift and glow in the card's color */
+.device:hover,.charts .card:hover,.table-card:hover,
+.device:focus-within,.charts .card:focus-within{
+  transform:translateY(-3px);
+  border-color:color-mix(in srgb,var(--c,var(--primary)) 45%,var(--glass-line));
+  box-shadow:0 14px 34px -12px color-mix(in srgb,var(--c,var(--primary)) 50%,transparent),
+             0 0 0 1px color-mix(in srgb,var(--c,var(--primary)) 30%,transparent);
+}
+.device:active,.charts .card:active,.table-card:active{
+  transform:scale(.99);
+  background:color-mix(in srgb,var(--c,var(--primary)) 10%,var(--glass-bg));
+}
+
+/* Device cards tint with their own color when running */
+.device[data-on="true"]{
+  background:linear-gradient(160deg,color-mix(in srgb,var(--c) 14%,var(--glass-bg)),var(--glass-bg) 65%);
+  border-color:color-mix(in srgb,var(--c) 45%,var(--glass-line));
+}
+
+/* Table: rows tint with the color on touch */
+tbody tr:hover td,tbody tr:active td{background:color-mix(in srgb,var(--primary) 12%,transparent)
+}
+/* ================= SEPARATE SECTIONS ================= */
+.tabs .sec:not(.active){display:none}
+.tabs .sec.active{display:block;animation:secIn .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes secIn{from{opacity:0;transform:translateY(12px)}}
+.sec{margin-top:4px}
+.foot{margin-top:36px}
+/* ================= INSTALL BUTTON ================= */
+.install-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;border:0;cursor:pointer;
+  background:linear-gradient(145deg,var(--primary),var(--primary-strong));color:#fff;font-weight:700;font-size:13.5px;
+  box-shadow:0 6px 16px -6px var(--primary);transition:transform .15s}
+.install-btn[hidden]{display:none}
+.install-btn:active{transform:scale(.94)}
+.install-btn .ic{width:18px;height:18px}
+@media (max-width:560px){.install-btn span{display:none}.install-btn{padding:0;width:38px;height:38px;justify-content:center}}
 `;
 
 /* ------------------------------------------------------------------ */
@@ -1296,6 +1448,53 @@ function clientApp() {
   }
 
   $('replayIntro').addEventListener('click', () => playIntro(true));
+    /* ---------- Install app button ---------- */
+  let installEvent = null;
+  const installBtn = $('installBtn');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installEvent = e;
+    if (!isStandalone) installBtn.hidden = false;
+  });
+  window.addEventListener('appinstalled', () => {
+    installEvent = null;
+    installBtn.hidden = true;
+    toast('App installed');
+  });
+  // iPhone Safari has no install prompt, so show the button with instructions
+  if (isIOS && !isStandalone) installBtn.hidden = false;
+
+  installBtn.addEventListener('click', async () => {
+    if (installEvent) {
+      installEvent.prompt();
+      await installEvent.userChoice;
+      installEvent = null;
+      installBtn.hidden = true;
+    } else if (isIOS) {
+      toast('Tap Share, then Add to Home Screen');
+    }
+  });
+    /* ---------- Separate sections (one page at a time) ---------- */
+  const SECTIONS = ['overview', 'controls', 'trends', 'log'];
+  function showSection(id, scrollTop) {
+    if (SECTIONS.indexOf(id) < 0) id = 'overview';
+    root.classList.add('tabs');
+    SECTIONS.forEach((s) => { const el = $(s); if (el) el.classList.toggle('active', s === id); });
+    setNav(id);
+    if (scrollTop) window.scrollTo(0, 0);
+    // charts need a resize nudge after being shown
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+  }
+  document.querySelectorAll('[data-nav]').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    history.replaceState(null, '', '#' + a.dataset.nav);
+    showSection(a.dataset.nav, true);
+  }));
+  window.addEventListener('hashchange', () => showSection(location.hash.slice(1), true));
+  showSection(location.hash.slice(1), false);
 
   // Boot
   buildCharts();
