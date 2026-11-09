@@ -26,7 +26,7 @@ const DEVELOPER_LIST = [
 ];
 
 const DEVELOPERS = DEVELOPER_LIST.map((d) => d.name);
-const PROJECT_DESCRIPTION = 'The Smart Greenhouse Control Center is a comprehensive IoT (Internet of Things) automationand monitoring system. Designed to maintain an optimal environment for plant growth, the project bridges local hardware control with a cloud-based web dashboard. It continuously monitors crucial environmental factors\u2014including ambient temperature, relative humidity, soil moisture across multiple zones, ambient light intensity, and water reservoir levels. By intelligently combining local hardware safety overrides with remote manual controls, it ensures that the greenhouse operates safely and efficiently whether attended or unattended.';
+const PROJECT_DESCRIPTION = 'The Smart Greenhouse Control Center is a comprehensive IoT (Internet of Things) automation and monitoring system. Designed to maintain an optimal environment for plant growth, the project bridges local hardware control with a cloud-based web dashboard. It continuously monitors crucial environmental factors\u2014including ambient temperature, relative humidity, soil moisture across multiple zones, ambient light intensity, and water reservoir levels. By intelligently combining local hardware safety overrides with remote manual controls, it ensures that the greenhouse operates safely and efficiently whether attended or unattended.';
 
 // Profile photos (256x256 JPEG, embedded so the app stays a single file). Served at /team/<key>.jpg
 const TEAM_PHOTOS = {
@@ -1023,7 +1023,7 @@ tbody tr:hover td,tbody tr:active td{background:color-mix(in srgb,var(--primary)
 .about-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .about-head h3{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em}
 .about-logo{width:30px;height:30px}
-.about-text{font-size:15px;line-height:1.7;color:var(--text);opacity:.92;max-width:80ch}
+.about-text{font-size:15px;line-height:1.7;color:var(--text);opacity:.92;max-width:none}
 .dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
 .dev-card{display:flex;align-items:flex-start;gap:14px}
 .dev-avatar{display:grid;place-items:center;flex:none;width:64px;height:64px;border-radius:16px;background:linear-gradient(145deg,var(--primary),var(--primary-strong));color:#fff;font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.02em}
