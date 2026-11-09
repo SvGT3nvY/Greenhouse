@@ -1023,16 +1023,16 @@ tbody tr:hover td,tbody tr:active td{background:color-mix(in srgb,var(--primary)
 .about-head{display:flex;align-items:center;gap:14px;margin-bottom:14px}
 .about-head h3{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:-.01em}
 .about-logo{width:30px;height:30px}
-.about-text{font-size:15px;line-height:1.7;color:var(--text);opacity:.92;max-width:none}
-.dev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
-.dev-card{display:flex;align-items:flex-start;gap:14px}
-.dev-avatar{display:grid;place-items:center;flex:none;width:64px;height:64px;border-radius:16px;background:linear-gradient(145deg,var(--primary),var(--primary-strong));color:#fff;font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.02em}
-.dev-photo{width:64px;height:64px;border-radius:16px;object-fit:cover;background:var(--primary)}
-.dev-info{min-width:0}
-.dev-info h3{font-size:15.5px;font-weight:700;overflow-wrap:anywhere}
-.dev-roles{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
-.dev-roles li{font-size:13px;color:var(--muted);padding-left:14px;position:relative}
-.dev-roles li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--primary)}
+.about-text{font-family:var(--font-body);font-size:16px;font-weight:500;line-height:1.85;letter-spacing:.003em;color:var(--text);opacity:.88;max-width:none;text-wrap:pretty;-webkit-font-smoothing:antialiased}
+.dev-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.dev-card{flex:1 1 180px;max-width:232px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:26px 16px 22px}
+.dev-avatar{display:grid;place-items:center;flex:none;width:96px;height:96px;border-radius:50%;background:linear-gradient(145deg,var(--primary),var(--primary-strong));color:#fff;font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.02em;box-shadow:0 0 0 3px var(--surface),0 0 0 5px color-mix(in srgb,var(--primary) 55%,transparent),0 10px 22px -10px color-mix(in srgb,var(--primary) 60%,transparent)}
+.dev-photo{object-fit:cover;background:var(--surface-2)}
+.dev-info{min-width:0;width:100%}
+.dev-info h3{font-size:15.5px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.dev-roles{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.dev-roles li{font-size:12.5px;line-height:1.35;color:var(--muted)}
+@media (max-width:560px){.dev-card{flex-basis:100%;max-width:none}}
 `;
 
 /* ------------------------------------------------------------------ */
