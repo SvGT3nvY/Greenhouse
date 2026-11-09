@@ -26,7 +26,7 @@ const DEVELOPER_LIST = [
 ];
 
 const DEVELOPERS = DEVELOPER_LIST.map((d) => d.name);
-const PROJECT_DESCRIPTION = 'The Smart Greenhouse Control Center is a comprehensive IoT (Internet of Things) automation and monitoring system. Designed to maintain an optimal environment for plant growth, the project bridges local hardware control with a cloud-based web dashboard. It continuously monitors crucial environmental factors\u2014including ambient temperature, relative humidity, soil moisture across multiple zones, ambient light intensity, and water reservoir levels. By intelligently combining local hardware safety overrides with remote manual controls, it ensures that the greenhouse operates safely and efficiently whether attended or unattended.';
+const PROJECT_DESCRIPTION = 'The Smart Greenhouse Control Center is a comprehensive IoT (Internet of Things) automationand monitoring system. Designed to maintain an optimal environment for plant growth, the project bridges local hardware control with a cloud-based web dashboard. It continuously monitors crucial environmental factors\u2014including ambient temperature, relative humidity, soil moisture across multiple zones, ambient light intensity, and water reservoir levels. By intelligently combining local hardware safety overrides with remote manual controls, it ensures that the greenhouse operates safely and efficiently whether attended or unattended.';
 
 // Profile photos (256x256 JPEG, embedded so the app stays a single file). Served at /team/<key>.jpg
 const TEAM_PHOTOS = {
