@@ -250,7 +250,7 @@ app.get('/manifest.webmanifest', (req, res) => {
 });
 
 const SERVICE_WORKER = `
-const CACHE = 'greenhouse-v2';
+const CACHE = 'greenhouse-v3';
 const SHELL = ['/', '/app.js', '/icon.svg', '/manifest.webmanifest'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener('activate', e => {
