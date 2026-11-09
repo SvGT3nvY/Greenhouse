@@ -22,7 +22,7 @@ const DEVELOPER_LIST = [
   { name: 'Marc Kenneth A. Alita',  photo: 'alita',  roles: ['Hardware/IoT Engineer', 'Embedded System Developer'] },
   { name: 'Shelby Lyle Pautan',    photo: 'pautan', roles: ['UI/UX Designer', 'Front End Developer'] },
   { name: 'Justine B. Juyad',       photo: 'juyad',  roles: ['Structural/Mechanical Designer', 'Agriculture Specialist'] },
-  { name: 'Diacor',                 photo: 'diacor', roles: ['Testing Lead', 'Technical Writer'] },
+  { name: 'Jay Lord Diacor',                 photo: 'diacor', roles: ['Testing Lead', 'Technical Writer'] },
 ];
 
 const DEVELOPERS = DEVELOPER_LIST.map((d) => d.name);
