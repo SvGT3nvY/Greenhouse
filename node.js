@@ -38,11 +38,17 @@ const TEAM_PHOTOS = {
 };
 const APP_TAGLINE = process.env.APP_TAGLINE || 'Smart monitoring & automation';
 
+// AUTO-mode settings. Change a value here (or set the env variable) and the
+// server, the dashboard text AND the relays all follow. The ESP32 no longer
+// decides anything in AUTO mode, it just obeys the state the server sends back.
 const THRESHOLDS = {
-  fanTempC: 40.0,   // fans ON above this temperature
-  pumpSoilPct: 40,  // pump ON below this soil moisture (sensor 1)
-  lightLux: 500,    // LED ON below this light level
+  fanTempC: Number(process.env.FAN_TEMP_C) || 40.0,   // fans ON above this temperature
+  pumpSoilPct: Number(process.env.PUMP_SOIL_PCT) || 40,  // pump ON below this soil moisture (sensor 1)
+  lightLux: Number(process.env.LIGHT_LUX) || 500,    // LED ON below this light level
 };
+
+// How long the last good DHT22 reading is reused when a read fails (seconds).
+const DHT_HOLD_MS = (Number(process.env.DHT_HOLD_SECONDS) || 60) * 1000;
 
 const HISTORY_SIZE = 24;
 const REFRESH_SECONDS = 5;
@@ -82,6 +88,44 @@ const devices = {
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? null : Number(v));
 
+/* ---------- DHT22 validation ----------
+   A failed DHT22 read arrives as 0 / null / NaN. Those are never real greenhouse
+   readings, so they are ignored and the last good value is held for a short time. */
+const validTemp = (t) => t !== null && t !== 0 && t >= -40 && t <= 80;
+const validHum  = (h) => h !== null && h > 0 && h <= 100;
+const validDht  = (t, h) => validTemp(t) && validHum(h);
+
+let lastGoodDht = null; // { temperature, humidity, at }
+
+// Used when a reading arrives from the ESP32.
+function effectiveDht(body) {
+  const t = num(body.temperature), h = num(body.humidity);
+  if (validDht(t, h)) {
+    lastGoodDht = { temperature: t, humidity: h, at: Date.now() };
+    return { temperature: t, humidity: h };
+  }
+  if (lastGoodDht && Date.now() - lastGoodDht.at <= DHT_HOLD_MS) {
+    return { temperature: lastGoodDht.temperature, humidity: lastGoodDht.humidity };
+  }
+  return { temperature: null, humidity: null }; // sensor really offline
+}
+
+// Used for rows read back from the database (newest first). Cleans old bad rows too.
+function sanitizeRows(rows) {
+  const out = new Array(rows.length);
+  let last = null;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = { ...rows[i] };
+    const at = new Date(r.created_at).getTime();
+    const t = num(r.temperature), h = num(r.humidity);
+    if (validDht(t, h)) last = { t, h, at };
+    else if (last && at - last.at <= DHT_HOLD_MS) { r.temperature = last.t; r.humidity = last.h; }
+    else { r.temperature = null; r.humidity = null; }
+    out[i] = r;
+  }
+  return out;
+}
+
 // A missing sensor value never switches a relay on in AUTO mode.
 const AUTO_RULES = {
   fan:   (r) => num(r?.temperature) !== null && num(r.temperature) > THRESHOLDS.fanTempC,
@@ -109,10 +153,11 @@ async function getStatus() {
     .limit(HISTORY_SIZE);
   if (error) throw error;
 
-  const latest = data && data.length ? data[0] : null;
+  const clean = data ? sanitizeRows(data) : [];
+  const latest = clean.length ? clean[0] : null;
   return {
     latest,
-    history: data ? [...data].reverse() : [],
+    history: [...clean].reverse(),
     devices: deviceSnapshot(latest),
     serverTime: new Date().toISOString(),
     error: null,
@@ -162,13 +207,16 @@ app.post('/api/sensor-data', async (req, res) => {
   const body = req.body || {};
   const fields = ['temperature', 'humidity', 'soil_moisture', 'soil_moisture_2', 'water_level', 'light_level'];
 
+  const dht = effectiveDht(body);
+  const reading = { ...body, temperature: dht.temperature, humidity: dht.humidity };
+
   const payload = {};
-  fields.forEach((f) => { if (body[f] !== undefined) payload[f] = body[f]; });
+  fields.forEach((f) => { if (reading[f] !== undefined) payload[f] = reading[f]; });
 
   const states = {
-    fan_state:   resolveState('fan', body)   ? 'ON' : 'OFF',
-    pump_state:  resolveState('pump', body)  ? 'ON' : 'OFF',
-    light_state: resolveState('light', body) ? 'ON' : 'OFF',
+    fan_state:   resolveState('fan', reading)   ? 'ON' : 'OFF',
+    pump_state:  resolveState('pump', reading)  ? 'ON' : 'OFF',
+    light_state: resolveState('light', reading) ? 'ON' : 'OFF',
   };
 
   try {
