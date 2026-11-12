@@ -42,7 +42,7 @@ const APP_TAGLINE = process.env.APP_TAGLINE || 'Smart monitoring & automation';
 // server, the dashboard text AND the relays all follow. The ESP32 no longer
 // decides anything in AUTO mode, it just obeys the state the server sends back.
 const THRESHOLDS = {
-  fanTempC: Number(process.env.FAN_TEMP_C) || 40.0,   // fans ON above this temperature
+  fanTempC: Number(process.env.FAN_TEMP_C) || 30.0,   // fans ON above this temperature
   pumpSoilPct: Number(process.env.PUMP_SOIL_PCT) || 40,  // pump ON below this soil moisture (sensor 1)
   lightLux: Number(process.env.LIGHT_LUX) || 500,    // LED ON below this light level
 };
