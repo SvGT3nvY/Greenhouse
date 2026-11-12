@@ -39,7 +39,7 @@ const TEAM_PHOTOS = {
 const APP_TAGLINE = process.env.APP_TAGLINE || 'Smart monitoring & automation';
 
 const THRESHOLDS = {
-  fanTempC: 30.0,   // fans ON above this temperature
+  fanTempC: 40.0,   // fans ON above this temperature
   pumpSoilPct: 40,  // pump ON below this soil moisture (sensor 1)
   lightLux: 500,    // LED ON below this light level
 };
